@@ -12,16 +12,16 @@ require 'uri'
 
 story = { "pact" => @pact_url, "twig" => @twig_url, "worm" => @worm_url, "ward" => @ward_url}
 
-options = []
+options = {}
 OptionParser.new do |opts|
 	opts.banner = "Usage: serial_scrape.rb [options]"
 
 	opts.on("-s", "--series NAME", "Select web series") do |name|
-		options << name
+		options[:stories] = [name]
 	end
 
 	opts.on("-a", "select all") do 
-		options = ["worm", "pact", "twig", "ward"]
+		options[:stories] = ["worm", "pact", "twig", "ward"]
 	end
 end.parse!
 
@@ -71,7 +71,7 @@ def write_story(starting_chapter)
 	puts @book_body
 end	
 
-story.each{ |key, val| if options.include?(key) 
+story.each{ |key, val| if options[:stories].include?(key)
 	write_story(val)
 	end
 }
