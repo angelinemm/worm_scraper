@@ -24,7 +24,7 @@ Download the ebook or run the scraper yourself.
   ```command
   gem install nokogiri
   ```
-3. Run the shell script, with the option of choice. -h shows options, -w creates the worm ebook, -p creates pact, and -t creates twig; -a creates all three.
+3. Run the shell script, with the option of choice. -h shows options, -w creates the worm ebook, -p creates pact, -t creates twig and -r creates ward; -a creates all three.
 
   ```command
   chmod +x make_ebook.sh
