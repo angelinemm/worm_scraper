@@ -12,7 +12,7 @@ require 'uri'
 
 story = { "pact" => @pact_url, "twig" => @twig_url, "worm" => @worm_url, "ward" => @ward_url}
 
-options = {}
+options = {:first_arc => 0, :last_arc => 999999}
 OptionParser.new do |opts|
 	opts.banner = "Usage: serial_scrape.rb [options]"
 
@@ -23,13 +23,22 @@ OptionParser.new do |opts|
 	opts.on("-a", "select all") do 
 		options[:stories] = ["worm", "pact", "twig", "ward"]
 	end
+
+    opts.on("-bARC", "begin at this arc") do |arc|
+        options[:first_arc] = arc.to_i
+    end
+
+    opts.on("-eARC", "end at this arc") do |arc|
+        options[:last_arc] = arc.to_i
+    end
 end.parse!
 
-def write_story(starting_chapter)
+def write_story(starting_chapter, first_arc, last_arc)
 	@next_chapter = starting_chapter
 	@toc = "<h1>Table of Contents</h1>"
 	@book_body = ""
 	@index = 1
+    @last_known_arc_number = 1
 	while @next_chapter
     #check if url is weird
     if @next_chapter.to_s.include?("½")
@@ -46,19 +55,30 @@ def write_story(starting_chapter)
 
     #modify chapter to have link
     @chapter_title_plain = @chapter_title.content
-    $stderr.puts @chapter_title_plain
-    @chapter_content = doc.css('div.entry-content').first #gsub first p
-    #clean
-    @chapter_content.search('.//div').remove
-    @to_remove = doc.css('div.entry-content p').first #gsub first p
-    @chapter_content = @chapter_content.to_s.gsub(@to_remove.to_s,"")
-    #write
-    @book_body << "<h1 id=\"chap#{@index.to_s}\">#{@chapter_title_plain}</h1>"
-    @book_body << @chapter_content
-    @toc << "<a href=\"#chap#{@index.to_s}\">#{@chapter_title_plain}</a><br>"
+    # NB: (/[[:space:]]/) is important.
+    # We can't split just on ' ' because in some chapter titles
+    # we have ascii 160 (non breaking space) instead of ascii 32 (classic space)
+    @arc_number = @chapter_title_plain.split(/[[:space:]]/)[-1].to_i
+    if @arc_number == 0
+        @arc_number = @last_known_arc_number
+    else
+        @last_known_arc_number = @arc_number
+    end
+    if first_arc <= @arc_number && @arc_number <= last_arc
+        $stderr.puts @chapter_title_plain + " (Arc " + @arc_number.to_s + ")"
+        @chapter_content = doc.css('div.entry-content').first #gsub first p
+        #clean
+        @chapter_content.search('.//div').remove
+        @to_remove = doc.css('div.entry-content p').first #gsub first p
+        @chapter_content = @chapter_content.to_s.gsub(@to_remove.to_s,"")
+        #write
+        @book_body << "<h1 id=\"chap#{@index.to_s}\">#{@chapter_title_plain}</h1>"
+        @book_body << @chapter_content
+        @toc << "<a href=\"#chap#{@index.to_s}\">#{@chapter_title_plain}</a><br>"
+    end
     @index += 1
     #next
-    @next_chapter = if doc.css('div.entry-content p a').last.content.to_s.include?("Next")
+    @next_chapter = if @arc_number <= last_arc && doc.css('div.entry-content p a').last.content.to_s.include?("Next")
     doc.css('div.entry-content p a').last['href']
     else
       false
@@ -72,6 +92,6 @@ def write_story(starting_chapter)
 end	
 
 story.each{ |key, val| if options[:stories].include?(key)
-	write_story(val)
+	write_story(val, options[:first_arc], options[:last_arc])
 	end
 }
