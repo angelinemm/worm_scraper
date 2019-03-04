@@ -38,7 +38,7 @@ def write_story(starting_chapter, first_arc, last_arc)
 	@toc = "<h1>Table of Contents</h1>"
 	@book_body = ""
 	@index = 1
-    @last_known_arc_number = 1
+    @last_known_arc_number = 0
 	while @next_chapter
     #check if url is weird
     if @next_chapter.to_s.include?("½")
